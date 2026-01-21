@@ -1,0 +1,16 @@
+FROM gradle:8.5-jdk17 AS build
+WORKDIR /app
+COPY build.gradle settings.gradle ./
+COPY gradle ./gradle
+COPY service-settlement ./service-settlement
+RUN gradle :service-settlement:build -x test --no-daemon
+
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY --from=build /app/service-settlement/build/libs/*.jar app.jar
+
+ENV JAVA_OPTS="-Xms256m -Xmx512m"
+
+EXPOSE 8081
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
