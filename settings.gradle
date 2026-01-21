@@ -1,0 +1,4 @@
+rootProject.name = 'payment-system-simulator'
+
+include 'service-payment'
+include 'service-settlement'
