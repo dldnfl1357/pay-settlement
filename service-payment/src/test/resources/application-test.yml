@@ -1,0 +1,22 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  kafka:
+    # 테스트에서 Kafka 비활성화
+    bootstrap-servers: localhost:9092
+
+payment:
+  idempotency:
+    ttl-hours: 1
+  lock:
+    wait-seconds: 1
+    lease-seconds: 5
+  pg:
+    timeout-seconds: 3
+
+logging:
+  level:
+    com.example.payment: DEBUG
+    org.hibernate.SQL: DEBUG

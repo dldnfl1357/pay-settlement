@@ -1,0 +1,20 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+  batch:
+    jdbc:
+      initialize-schema: always
+
+settlement:
+  fee-rate: 0.025
+  schedule:
+    cron: "0 0 1 * * *"
+
+logging:
+  level:
+    com.example.settlement: DEBUG
+    org.hibernate.SQL: DEBUG
