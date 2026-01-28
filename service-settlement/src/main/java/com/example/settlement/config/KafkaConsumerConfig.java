@@ -1,6 +1,6 @@
 package com.example.settlement.config;
 
-import com.example.settlement.event.PaymentEvent;
+import com.example.settlement.infrastructure.acl.ExternalPaymentEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,7 @@ public class KafkaConsumerConfig {
     private String groupId;
 
     @Bean
-    public ConsumerFactory<String, PaymentEvent> consumerFactory() {
+    public ConsumerFactory<String, ExternalPaymentEvent> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
@@ -38,13 +38,13 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(
             props,
             new StringDeserializer(),
-            new JsonDeserializer<>(PaymentEvent.class, false)
+            new JsonDeserializer<>(ExternalPaymentEvent.class, false)
         );
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, PaymentEvent> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, PaymentEvent> factory =
+    public ConcurrentKafkaListenerContainerFactory<String, ExternalPaymentEvent> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, ExternalPaymentEvent> factory =
             new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(3);

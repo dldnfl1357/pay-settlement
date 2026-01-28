@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(./gradlew:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(export JAVA_HOME=\"/mnt/c/Program Files/Java/jdk-17\")",
+      "Bash(export PATH=\"$JAVA_HOME/bin:$PATH\")",
+      "Bash(\"/mnt/c/Program Files/Java/jdk-17/bin/java.exe\" -version)",
+      "Bash(JAVA_HOME=\"/mnt/c/Program Files/Java/jdk-17\" ./gradlew.bat compileJava:*)",
+      "Bash(ls:*)",
+      "Bash(/mnt/c/projects/pay-settlement/gradlew:*)",
+      "Bash(apt list:*)",
+      "Bash(dpkg:*)",
+      "Bash(apt-get update:*)",
+      "Bash(apt-get install:*)",
+      "Bash(sudo apt-get update:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(ln:*)",
+      "Bash(curl:*)",
+      "Bash(\"$JAVA_HOME/bin/java\" -version)",
+      "Bash(\"$JAVA_HOME/bin/java\" -classpath /mnt/c/projects/pay-settlement/gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain --version)",
+      "Bash(\"$JAVA_HOME/bin/java\" -jar /mnt/c/projects/pay-settlement/gradle/wrapper/gradle-wrapper.jar)",
+      "Bash(\"/mnt/c/Program Files/Java/jdk-17/bin/java.exe\" -jar /mnt/c/projects/pay-settlement/gradle/wrapper/gradle-wrapper.jar)",
+      "Bash(\"/mnt/c/Program Files/Java/jdk-17/bin/java.exe\" -jar \"C:\\\\projects\\\\pay-settlement\\\\gradle\\\\wrapper\\\\gradle-wrapper.jar\" --version)",
+      "Bash(unzip:*)",
+      "Bash(cmd.exe /c \"cd C:\\\\projects\\\\pay-settlement && gradlew.bat compileJava\")",
+      "Bash(gradle --version:*)",
+      "Bash(python3:*)",
+      "Bash(export PATH=\"/tmp/gradle-extract/gradle-8.5/bin:$JAVA_HOME/bin:$PATH\")",
+      "Bash(gradle wrapper:*)",
+      "Bash(export GRADLE_HOME=\"/tmp/gradle-extract/gradle-8.5\")",
+      "Bash(\"$JAVA_HOME/bin/java\" -cp \"$GRADLE_HOME/lib/gradle-launcher-8.5.jar\" org.gradle.launcher.GradleMain wrapper --gradle-version 8.5 --project-dir /tmp/gradle-wrapper-gen)",
+      "Bash(\"$JAVA_HOME/bin/java\" -cp \"/tmp/gradle-extract/gradle-8.5/lib/*\" org.gradle.launcher.Main wrapper --gradle-version 8.5 --project-dir /tmp/gradle-wrapper-gen)",
+      "Bash(\"/mnt/c/Program Files/Java/jdk-17/bin/java.exe\" -cp \"C:\\\\tmp\\\\gradle-extract\\\\gradle-8.5\\\\lib\\\\*\" org.gradle.launcher.Main wrapper --gradle-version 8.5 --project-dir \"C:\\\\tmp\\\\gradle-wrapper-gen\")"
+    ]
+  }
+}

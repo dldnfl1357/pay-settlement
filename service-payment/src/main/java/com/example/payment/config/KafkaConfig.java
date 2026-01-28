@@ -1,6 +1,5 @@
 package com.example.payment.config;
 
-import com.example.payment.event.PaymentEvent;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -23,7 +22,7 @@ public class KafkaConfig {
     private String bootstrapServers;
 
     @Bean
-    public ProducerFactory<String, PaymentEvent> producerFactory() {
+    public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -34,39 +33,27 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, PaymentEvent> kafkaTemplate() {
+    public KafkaTemplate<String, Object> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
     public NewTopic paymentRequestedTopic() {
-        return TopicBuilder.name("payment.requested")
-            .partitions(3)
-            .replicas(1)
-            .build();
+        return TopicBuilder.name("payment.requested").partitions(3).replicas(1).build();
     }
 
     @Bean
     public NewTopic paymentApprovedTopic() {
-        return TopicBuilder.name("payment.approved")
-            .partitions(3)
-            .replicas(1)
-            .build();
+        return TopicBuilder.name("payment.approved").partitions(3).replicas(1).build();
     }
 
     @Bean
     public NewTopic paymentCancelledTopic() {
-        return TopicBuilder.name("payment.cancelled")
-            .partitions(3)
-            .replicas(1)
-            .build();
+        return TopicBuilder.name("payment.cancelled").partitions(3).replicas(1).build();
     }
 
     @Bean
     public NewTopic paymentFailedTopic() {
-        return TopicBuilder.name("payment.failed")
-            .partitions(3)
-            .replicas(1)
-            .build();
+        return TopicBuilder.name("payment.failed").partitions(3).replicas(1).build();
     }
 }

@@ -1,17 +1,17 @@
 package com.example.payment.config;
 
-import com.example.payment.domain.Merchant;
-import com.example.payment.domain.Wallet;
-import com.example.payment.repository.MerchantRepository;
-import com.example.payment.repository.WalletRepository;
+import com.example.payment.domain.merchant.FeeRate;
+import com.example.payment.domain.merchant.Merchant;
+import com.example.payment.domain.merchant.MerchantRepository;
+import com.example.payment.domain.shared.Money;
+import com.example.payment.domain.wallet.Wallet;
+import com.example.payment.domain.wallet.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 
 @Component
 @Profile("!test")
@@ -35,20 +35,10 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        // 테스트 사용자 1: 잔액 1,000,000원
-        Wallet wallet1 = Wallet.builder()
-            .userId(1L)
-            .userName("테스트유저1")
-            .balance(new BigDecimal("1000000"))
-            .build();
+        Wallet wallet1 = Wallet.create(1L, "테스트유저1", Money.of("1000000"));
         walletRepository.save(wallet1);
 
-        // 테스트 사용자 2: 잔액 500,000원
-        Wallet wallet2 = Wallet.builder()
-            .userId(2L)
-            .userName("테스트유저2")
-            .balance(new BigDecimal("500000"))
-            .build();
+        Wallet wallet2 = Wallet.create(2L, "테스트유저2", Money.of("500000"));
         walletRepository.save(wallet2);
 
         log.info("Initialized {} wallets", 2);
@@ -60,24 +50,16 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        // 테스트 가맹점 A: 수수료 2.5%
-        Merchant merchant1 = Merchant.builder()
-            .name("테스트가맹점A")
-            .businessNumber("123-45-67890")
-            .feeRate(new BigDecimal("0.0250"))
-            .apiKey("test-api-key-merchant-a")
-            .active(true)
-            .build();
+        Merchant merchant1 = Merchant.create(
+            "테스트가맹점A", "123-45-67890",
+            FeeRate.of("0.0250"), "test-api-key-merchant-a"
+        );
         merchantRepository.save(merchant1);
 
-        // 테스트 가맹점 B: 수수료 2.0%
-        Merchant merchant2 = Merchant.builder()
-            .name("테스트가맹점B")
-            .businessNumber("098-76-54321")
-            .feeRate(new BigDecimal("0.0200"))
-            .apiKey("test-api-key-merchant-b")
-            .active(true)
-            .build();
+        Merchant merchant2 = Merchant.create(
+            "테스트가맹점B", "098-76-54321",
+            FeeRate.of("0.0200"), "test-api-key-merchant-b"
+        );
         merchantRepository.save(merchant2);
 
         log.info("Initialized {} merchants", 2);

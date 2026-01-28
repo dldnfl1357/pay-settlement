@@ -19,9 +19,6 @@ public class SettlementScheduler {
     private final JobLauncher jobLauncher;
     private final Job settlementJob;
 
-    /**
-     * 매일 01:00에 정산 배치 실행
-     */
     @Scheduled(cron = "${settlement.schedule.cron:0 0 1 * * *}")
     public void runDailySettlement() {
         log.info("Starting scheduled settlement batch");
