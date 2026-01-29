@@ -34,6 +34,5 @@ public class PaymentRequest {
 
     private String productName;
 
-    @NotBlank(message = "idempotencyKey is required")
     private String idempotencyKey;
 }

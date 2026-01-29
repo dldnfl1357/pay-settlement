@@ -7,6 +7,7 @@ import com.example.payment.domain.payment.PaymentStatus;
 import com.example.payment.domain.shared.Money;
 import com.example.payment.domain.wallet.Wallet;
 import com.example.payment.domain.wallet.WalletRepository;
+import com.example.payment.infrastructure.pg.PgApprovalException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Testcontainers
@@ -77,9 +79,9 @@ class PaymentIntegrationTest {
     }
 
     @Test
-    @DisplayName("결제 생성 → 승인 → 취소 전체 흐름")
+    @DisplayName("결제 생성 및 취소 전체 흐름")
     void fullPaymentFlow() {
-        // 1. 결제 생성
+        // 1. 결제 생성 (생성 시 바로 승인까지 완료)
         String idempotencyKey = UUID.randomUUID().toString();
         CreatePaymentCommand createCommand = CreatePaymentCommand.builder()
             .walletId(testWallet.getId())
@@ -91,24 +93,20 @@ class PaymentIntegrationTest {
             .idempotencyKey(idempotencyKey)
             .build();
 
-        PaymentResult created = paymentService.createPayment(createCommand);
+        PaymentResult result = paymentService.createPayment(createCommand);
 
-        assertThat(created.getStatus()).isEqualTo(PaymentStatus.PENDING);
-        assertThat(created.getOrderId()).isEqualTo("INT-ORDER-001");
-
-        // 2. 결제 승인
-        PaymentResult approved = paymentService.approvePayment(created.getId());
-
-        assertThat(approved.getStatus()).isEqualTo(PaymentStatus.APPROVED);
-        assertThat(approved.getPgTransactionId()).startsWith("PG-");
+        // 결제 생성 시 바로 승인까지 완료
+        assertThat(result.getStatus()).isEqualTo(PaymentStatus.APPROVED);
+        assertThat(result.getOrderId()).isEqualTo("INT-ORDER-001");
+        assertThat(result.getPgTransactionId()).startsWith("PG-");
 
         // 잔액 차감 확인
         Wallet updatedWallet = walletRepository.findById(testWallet.getId()).orElseThrow();
         assertThat(updatedWallet.getBalance().getAmount())
             .isEqualByComparingTo("950000"); // 1000000 - 50000
 
-        // 3. 결제 취소
-        PaymentResult cancelled = paymentService.cancelPayment(approved.getId());
+        // 2. 결제 취소
+        PaymentResult cancelled = paymentService.cancelPayment(result.getId());
 
         assertThat(cancelled.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
 
@@ -134,11 +132,13 @@ class PaymentIntegrationTest {
 
         // 첫 번째 요청
         PaymentResult first = paymentService.createPayment(command);
+        assertThat(first.getStatus()).isEqualTo(PaymentStatus.APPROVED);
 
         // 두 번째 요청 (동일 멱등성 키)
         PaymentResult second = paymentService.createPayment(command);
 
         // 같은 결과
+        assertThat(first.getId()).isEqualTo(second.getId());
         assertThat(first.getOrderId()).isEqualTo(second.getOrderId());
         assertThat(first.getAmount()).isEqualByComparingTo(second.getAmount());
     }
@@ -147,6 +147,9 @@ class PaymentIntegrationTest {
     @DisplayName("PG 실패 시 잔액 복구 (Saga 보상)")
     void sagaCompensationOnPgFailure() {
         // tok_test_2222 → PG 잔액 부족 응답
+        Money balanceBefore = walletRepository.findById(testWallet.getId())
+            .orElseThrow().getBalance();
+
         String idempotencyKey = UUID.randomUUID().toString();
         CreatePaymentCommand command = CreatePaymentCommand.builder()
             .walletId(testWallet.getId())
@@ -158,16 +161,9 @@ class PaymentIntegrationTest {
             .idempotencyKey(idempotencyKey)
             .build();
 
-        PaymentResult created = paymentService.createPayment(command);
-        Money balanceBefore = walletRepository.findById(testWallet.getId())
-            .orElseThrow().getBalance();
-
-        // 승인 시도 - PG 실패 예상
-        try {
-            paymentService.approvePayment(created.getId());
-        } catch (Exception e) {
-            // PG 실패 예외 발생
-        }
+        // 결제 생성 시 PG 실패로 예외 발생
+        assertThatThrownBy(() -> paymentService.createPayment(command))
+            .isInstanceOf(PgApprovalException.class);
 
         // 잔액 복구 확인 (보상 트랜잭션)
         Money balanceAfter = walletRepository.findById(testWallet.getId())

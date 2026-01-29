@@ -24,7 +24,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,7 +31,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -90,20 +88,32 @@ class PaymentApplicationServiceTest {
     }
 
     @Nested
-    @DisplayName("결제 생성")
+    @DisplayName("결제 생성 (생성 + 승인)")
     class CreatePayment {
 
+        @BeforeEach
+        void setUpForCreate() {
+            // lockManager mock 설정
+            lenient().doAnswer(invocation -> {
+                Runnable action = invocation.getArgument(1);
+                action.run();
+                return null;
+            }).when(lockManager).executeWithLock(anyString(), any(Runnable.class));
+        }
+
         @Test
-        @DisplayName("정상 생성")
+        @DisplayName("정상 생성 및 승인")
         void createPaymentSuccess() {
             // given
             when(idempotencyStore.getResponse(anyString(), any())).thenReturn(Optional.empty());
             when(idempotencyStore.tryAcquire(anyString())).thenReturn(true);
-            when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> {
-                Payment p = invocation.getArgument(0);
-                // ID 설정을 위한 reflection 또는 그냥 반환
-                return p;
-            });
+            when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(walletRepository.findByIdWithOptimisticLock(1L)).thenReturn(Optional.of(wallet));
+            when(walletRepository.save(any())).thenReturn(wallet);
+            when(pgGateway.approve(anyString(), any())).thenReturn(PgResponse.success("PG-TX-001"));
+            when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+            when(ledgerDomainService.createPaymentEntries(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(mock(LedgerEntry.class), mock(LedgerEntry.class)));
 
             // when
             PaymentResult result = paymentService.createPayment(createCommand);
@@ -111,10 +121,12 @@ class PaymentApplicationServiceTest {
             // then
             assertThat(result.getOrderId()).isEqualTo("ORDER-001");
             assertThat(result.getAmount()).isEqualByComparingTo("50000");
-            assertThat(result.getStatus()).isEqualTo(PaymentStatus.PENDING);
+            assertThat(result.getStatus()).isEqualTo(PaymentStatus.APPROVED);
+            assertThat(result.getPgTransactionId()).isEqualTo("PG-TX-001");
 
             verify(idempotencyStore).complete(eq("idem-key-001"), any(PaymentResult.class));
-            verify(eventPublisher, atLeastOnce()).publish(any());
+            verify(pgGateway).approve(eq("tok_test_1111"), any());
+            verify(ledgerEntryRepository).saveAll(any());
         }
 
         @Test
@@ -124,7 +136,7 @@ class PaymentApplicationServiceTest {
             PaymentResult cachedResult = PaymentResult.builder()
                 .id(1L)
                 .orderId("ORDER-001")
-                .status(PaymentStatus.PENDING)
+                .status(PaymentStatus.APPROVED)
                 .build();
             when(idempotencyStore.getResponse(eq("idem-key-001"), any()))
                 .thenReturn(Optional.of(cachedResult));
@@ -134,6 +146,7 @@ class PaymentApplicationServiceTest {
 
             // then
             assertThat(result.getId()).isEqualTo(1L);
+            assertThat(result.getStatus()).isEqualTo(PaymentStatus.APPROVED);
             verify(paymentRepository, never()).save(any());
         }
 
@@ -148,15 +161,36 @@ class PaymentApplicationServiceTest {
             assertThatThrownBy(() -> paymentService.createPayment(createCommand))
                 .isInstanceOf(DuplicatePaymentException.class);
         }
+
+        @Test
+        @DisplayName("PG 실패 시 보상 트랜잭션 실행")
+        void pgFailureTriggersSagaCompensation() {
+            // given
+            when(idempotencyStore.getResponse(anyString(), any())).thenReturn(Optional.empty());
+            when(idempotencyStore.tryAcquire(anyString())).thenReturn(true);
+            when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(walletRepository.findByIdWithOptimisticLock(1L)).thenReturn(Optional.of(wallet));
+            when(walletRepository.save(any())).thenReturn(wallet);
+            when(pgGateway.approve(anyString(), any()))
+                .thenReturn(PgResponse.failure("INSUFFICIENT_FUNDS", "잔액 부족"));
+            when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
+
+            // when & then
+            assertThatThrownBy(() -> paymentService.createPayment(createCommand))
+                .isInstanceOf(PgApprovalException.class);
+
+            // 보상: 잔액 복구 호출 확인 (2번: 차감 + 복구)
+            verify(walletRepository, atLeast(2)).findByIdWithOptimisticLock(1L);
+            verify(idempotencyStore).release(eq("idem-key-001"));
+        }
     }
 
     @Nested
-    @DisplayName("결제 승인")
+    @DisplayName("결제 승인 (외부 API)")
     class ApprovePayment {
 
         @BeforeEach
         void setUpApproval() {
-            // lockManager mock 설정 (일부 테스트에서는 사용되지 않을 수 있음)
             lenient().doAnswer(invocation -> {
                 Runnable action = invocation.getArgument(1);
                 action.run();
@@ -165,7 +199,7 @@ class PaymentApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("정상 승인 - Saga 성공 흐름")
+        @DisplayName("정상 승인")
         void approvePaymentSuccess() {
             // given
             when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
@@ -186,26 +220,6 @@ class PaymentApplicationServiceTest {
 
             verify(pgGateway).approve(eq("tok_test_1111"), any());
             verify(ledgerEntryRepository).saveAll(any());
-            verify(eventPublisher, atLeastOnce()).publish(any());
-        }
-
-        @Test
-        @DisplayName("PG 실패 시 보상 트랜잭션 실행")
-        void pgFailureTriggersSagaCompensation() {
-            // given
-            when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
-            when(walletRepository.findByIdWithOptimisticLock(1L)).thenReturn(Optional.of(wallet));
-            when(walletRepository.save(any())).thenReturn(wallet);
-            when(pgGateway.approve(anyString(), any()))
-                .thenReturn(PgResponse.failure("INSUFFICIENT_FUNDS", "잔액 부족"));
-            when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));
-
-            // when & then
-            assertThatThrownBy(() -> paymentService.approvePayment(1L))
-                .isInstanceOf(PgApprovalException.class);
-
-            // 보상: 잔액 복구 호출 확인 (2번: 차감 + 복구)
-            verify(walletRepository, atLeast(2)).findByIdWithOptimisticLock(1L);
         }
 
         @Test

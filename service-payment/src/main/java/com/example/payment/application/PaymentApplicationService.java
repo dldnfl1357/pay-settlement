@@ -79,10 +79,10 @@ public class PaymentApplicationService {
             log.info("Payment created: id={}, orderId={}, amount={}",
                 payment.getId(), payment.getOrderId(), payment.getAmount());
 
-            publishEvents(payment);
             paymentMetrics.incrementPaymentCreated();
 
-            PaymentResult result = PaymentResult.from(payment);
+            // 생성 후 바로 승인 처리
+            PaymentResult result = doApprove(payment);
             idempotencyStore.complete(command.getIdempotencyKey(), result);
             return result;
 
@@ -94,8 +94,6 @@ public class PaymentApplicationService {
 
     @Transactional
     public PaymentResult approvePayment(Long paymentId) {
-        Timer.Sample approvalTimer = paymentMetrics.startTimer();
-
         Payment payment = paymentRepository.findById(paymentId)
             .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
@@ -104,6 +102,13 @@ public class PaymentApplicationService {
                 paymentId, payment.getStatus());
             return PaymentResult.from(payment);
         }
+
+        return doApprove(payment);
+    }
+
+    private PaymentResult doApprove(Payment payment) {
+        Timer.Sample approvalTimer = paymentMetrics.startTimer();
+        Long paymentId = payment.getId();
 
         if (payment.isExpired()) {
             payment.fail("Payment expired");
