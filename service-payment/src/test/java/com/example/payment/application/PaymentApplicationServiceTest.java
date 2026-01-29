@@ -15,8 +15,10 @@ import com.example.payment.domain.payment.exception.DuplicatePaymentException;
 import com.example.payment.domain.shared.Money;
 import com.example.payment.domain.wallet.Wallet;
 import com.example.payment.domain.wallet.WalletRepository;
+import com.example.payment.infrastructure.metrics.PaymentMetrics;
 import com.example.payment.infrastructure.pg.PgApprovalException;
 import com.example.payment.infrastructure.pg.PgResponse;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -51,6 +53,8 @@ class PaymentApplicationServiceTest {
     @Mock private DistributedLockManager lockManager;
     @Mock private PaymentEventPublisher eventPublisher;
     @Mock private LedgerDomainService ledgerDomainService;
+    @Mock private PaymentMetrics paymentMetrics;
+    @Mock private Timer.Sample timerSample;
 
     @InjectMocks
     private PaymentApplicationService paymentService;
@@ -61,6 +65,8 @@ class PaymentApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(paymentMetrics.startTimer()).thenReturn(timerSample);
+
         createCommand = CreatePaymentCommand.builder()
             .walletId(1L)
             .merchantId(1L)
@@ -150,8 +156,8 @@ class PaymentApplicationServiceTest {
 
         @BeforeEach
         void setUpApproval() {
-            // lockManager mock 설정
-            doAnswer(invocation -> {
+            // lockManager mock 설정 (일부 테스트에서는 사용되지 않을 수 있음)
+            lenient().doAnswer(invocation -> {
                 Runnable action = invocation.getArgument(1);
                 action.run();
                 return null;
@@ -238,7 +244,7 @@ class PaymentApplicationServiceTest {
             payment.approve("PG-TX-001"); // 승인 상태로 변경
             payment.clearDomainEvents();
 
-            doAnswer(invocation -> {
+            lenient().doAnswer(invocation -> {
                 Runnable action = invocation.getArgument(1);
                 action.run();
                 return null;

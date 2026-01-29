@@ -70,8 +70,9 @@ class PaymentIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 테스트 월렛 생성
-        testWallet = Wallet.create(100L, "통합테스트유저", Money.of(1000000));
+        // 각 테스트마다 고유한 userId 사용
+        long uniqueUserId = System.nanoTime();
+        testWallet = Wallet.create(uniqueUserId, "통합테스트유저", Money.of(1000000));
         testWallet = walletRepository.save(testWallet);
     }
 
