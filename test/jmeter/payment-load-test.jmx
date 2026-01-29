@@ -20,79 +20,77 @@
           </elementProp>
         </collectionProp>
       </elementProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
-
-      <!-- ========== 시나리오 1: 기본 부하 테스트 ========== -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="1. Basic Load Test">
         <intProp name="ThreadGroup.num_threads">500</intProp>
         <intProp name="ThreadGroup.ramp_time">60</intProp>
+        <longProp name="ThreadGroup.duration">300</longProp>
+        <longProp name="ThreadGroup.delay">0</longProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
-          <intProp name="LoopController.loops">-1</intProp>
-        </elementProp>
-        <stringProp name="ThreadGroup.duration">300</stringProp>
-        <stringProp name="ThreadGroup.delay">0</stringProp>
         <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <intProp name="LoopController.loops">-1</intProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
       </ThreadGroup>
       <hashTree>
-        <!-- 랜덤 월렛 ID 생성 -->
-        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Wallet ID">
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Wallet ID" enabled="true">
           <stringProp name="variableName">walletId</stringProp>
           <stringProp name="minimumValue">1</stringProp>
           <stringProp name="maximumValue">${WALLET_COUNT}</stringProp>
           <stringProp name="outputFormat"></stringProp>
           <boolProp name="perThread">true</boolProp>
+          <stringProp name="randomSeed"></stringProp>
         </RandomVariableConfig>
         <hashTree/>
-
-        <!-- 랜덤 금액 생성 -->
-        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Amount">
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Amount" enabled="true">
           <stringProp name="variableName">amount</stringProp>
           <stringProp name="minimumValue">1000</stringProp>
           <stringProp name="maximumValue">10000</stringProp>
           <stringProp name="outputFormat"></stringProp>
           <boolProp name="perThread">true</boolProp>
+          <stringProp name="randomSeed"></stringProp>
         </RandomVariableConfig>
         <hashTree/>
-
-        <!-- UUID 생성 -->
-        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate UUID">
-          <stringProp name="script">vars.put("idempotencyKey", UUID.randomUUID().toString());</stringProp>
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate UUID" enabled="true">
+          <stringProp name="script">vars.put(&quot;idempotencyKey&quot;, UUID.randomUUID().toString());</stringProp>
           <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="cacheKey">false</stringProp>
         </JSR223PreProcessor>
         <hashTree/>
-
-        <!-- 결제 생성 요청 -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Create)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Create)" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{
-  "walletId": ${walletId},
-  "merchantId": 1,
-  "orderId": "ORDER-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}",
-  "amount": ${amount},
-  "cardToken": "tok_test_1111",
-  "productName": "Test Product"
+                <stringProp name="Argument.value">{&#xd;
+  &quot;walletId&quot;: ${walletId},&#xd;
+  &quot;merchantId&quot;: 1,&#xd;
+  &quot;orderId&quot;: &quot;ORDER-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}&quot;,&#xd;
+  &quot;amount&quot;: ${amount},&#xd;
+  &quot;cardToken&quot;: &quot;tok_test_1111&quot;,&#xd;
+  &quot;productName&quot;: &quot;Test Product&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -105,39 +103,39 @@
             </collectionProp>
           </HeaderManager>
           <hashTree/>
-
-          <!-- paymentId 추출 -->
-          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract paymentId">
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract paymentId" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">paymentId</stringProp>
             <stringProp name="JSONPostProcessor.jsonPathExprs">$.paymentId</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
             <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
           </JSONPostProcessor>
           <hashTree/>
-
-          <!-- 응답 검증 -->
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code 200/201">
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code 200/201" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
               <stringProp name="49587">201</stringProp>
             </collectionProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <intProp name="Assertion.test_type">33</intProp>
+            <stringProp name="Assertion.custom_message"></stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-
-        <!-- 결제 승인 요청 -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments/{id}/approve">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments/{id}/approve" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments/${paymentId}/approve</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -148,20 +146,18 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-
-      <!-- ========== 시나리오 2: 이중 지불 테스트 ========== -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="2. Double Payment Test" enabled="false">
         <intProp name="ThreadGroup.num_threads">100</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
-          <intProp name="LoopController.loops">10</intProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">10</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <!-- CSV 데이터 (고정 멱등성 키) -->
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Fixed Idempotency Keys">
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Fixed Idempotency Keys" enabled="true">
           <stringProp name="filename">../data/duplicate-keys.csv</stringProp>
           <stringProp name="fileEncoding">UTF-8</stringProp>
           <stringProp name="variableNames">fixedIdempotencyKey,walletId,amount</stringProp>
@@ -170,45 +166,42 @@
           <boolProp name="recycle">true</boolProp>
           <boolProp name="stopThread">false</boolProp>
           <stringProp name="shareMode">shareMode.all</stringProp>
+          <boolProp name="ignoreFirstLine">false</boolProp>
         </CSVDataSet>
         <hashTree/>
-
-        <!-- 동시 요청을 위한 동기화 타이머 -->
-        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer">
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer" enabled="true">
           <intProp name="groupSize">10</intProp>
           <longProp name="timeoutInMs">5000</longProp>
         </SyncTimer>
         <hashTree/>
-
-        <!-- 결제 생성 (동일 멱등성 키로 동시 요청) -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Duplicate)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Duplicate)" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{
-  "walletId": ${walletId},
-  "merchantId": 1,
-  "orderId": "ORDER-DUP-${fixedIdempotencyKey}",
-  "amount": ${amount},
-  "cardToken": "tok_test_1111",
-  "productName": "Duplicate Test"
+                <stringProp name="Argument.value">{&#xd;
+  &quot;walletId&quot;: ${walletId},&#xd;
+  &quot;merchantId&quot;: 1,&#xd;
+  &quot;orderId&quot;: &quot;ORDER-DUP-${fixedIdempotencyKey}&quot;,&#xd;
+  &quot;amount&quot;: ${amount},&#xd;
+  &quot;cardToken&quot;: &quot;tok_test_1111&quot;,&#xd;
+  &quot;productName&quot;: &quot;Duplicate Test&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -223,64 +216,62 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-
-      <!-- ========== 시나리오 3: 동시성 경쟁 테스트 ========== -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="3. Concurrency Race Test" enabled="false">
         <intProp name="ThreadGroup.num_threads">100</intProp>
         <intProp name="ThreadGroup.ramp_time">5</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
-          <intProp name="LoopController.loops">10</intProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">10</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <!-- 동일 월렛에 동시 요청 -->
-        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Set Fixed Wallet">
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Set Fixed Wallet" enabled="true">
           <stringProp name="script">
-vars.put("walletId", "1");  // 모든 요청이 동일 월렛 사용
-vars.put("amount", "1000");
-vars.put("idempotencyKey", UUID.randomUUID().toString());
+vars.put(&quot;walletId&quot;, &quot;1&quot;);  // 모든 요청이 동일 월렛 사용
+vars.put(&quot;amount&quot;, &quot;1000&quot;);
+vars.put(&quot;idempotencyKey&quot;, UUID.randomUUID().toString());
           </stringProp>
           <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="cacheKey">false</stringProp>
         </JSR223PreProcessor>
         <hashTree/>
-
-        <!-- 동시 요청 타이머 -->
-        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer">
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Timer" enabled="true">
           <intProp name="groupSize">50</intProp>
           <longProp name="timeoutInMs">10000</longProp>
         </SyncTimer>
         <hashTree/>
-
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Same Wallet)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Same Wallet)" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{
-  "walletId": ${walletId},
-  "merchantId": 1,
-  "orderId": "ORDER-RACE-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}",
-  "amount": ${amount},
-  "cardToken": "tok_test_1111",
-  "productName": "Race Condition Test"
+                <stringProp name="Argument.value">{&#xd;
+  &quot;walletId&quot;: ${walletId},&#xd;
+  &quot;merchantId&quot;: 1,&#xd;
+  &quot;orderId&quot;: &quot;ORDER-RACE-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}&quot;,&#xd;
+  &quot;amount&quot;: ${amount},&#xd;
+  &quot;cardToken&quot;: &quot;tok_test_1111&quot;,&#xd;
+  &quot;productName&quot;: &quot;Race Condition Test&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -293,8 +284,7 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
             </collectionProp>
           </HeaderManager>
           <hashTree/>
-
-          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract paymentId">
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract paymentId" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">paymentId</stringProp>
             <stringProp name="JSONPostProcessor.jsonPathExprs">$.paymentId</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
@@ -302,17 +292,20 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
           </JSONPostProcessor>
           <hashTree/>
         </hashTree>
-
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments/{id}/approve">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments/{id}/approve" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments/${paymentId}/approve</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -323,62 +316,62 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
           <hashTree/>
         </hashTree>
       </hashTree>
-
-      <!-- ========== 시나리오 4: Saga 보상 테스트 ========== -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="4. Saga Compensation Test" enabled="false">
         <intProp name="ThreadGroup.num_threads">200</intProp>
         <intProp name="ThreadGroup.ramp_time">30</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
-          <intProp name="LoopController.loops">50</intProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
+          <stringProp name="LoopController.loops">50</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Wallet ID">
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Wallet ID" enabled="true">
           <stringProp name="variableName">walletId</stringProp>
           <stringProp name="minimumValue">1</stringProp>
           <stringProp name="maximumValue">${WALLET_COUNT}</stringProp>
           <stringProp name="outputFormat"></stringProp>
           <boolProp name="perThread">true</boolProp>
+          <stringProp name="randomSeed"></stringProp>
         </RandomVariableConfig>
         <hashTree/>
-
-        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate UUID">
-          <stringProp name="script">vars.put("idempotencyKey", UUID.randomUUID().toString());</stringProp>
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate UUID" enabled="true">
+          <stringProp name="script">vars.put(&quot;idempotencyKey&quot;, UUID.randomUUID().toString());</stringProp>
           <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="parameters"></stringProp>
+          <stringProp name="filename"></stringProp>
+          <stringProp name="cacheKey">false</stringProp>
         </JSR223PreProcessor>
         <hashTree/>
-
-        <!-- PG 실패를 유도하는 카드 토큰 사용 -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (PG Fail)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (PG Fail)" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{
-  "walletId": ${walletId},
-  "merchantId": 1,
-  "orderId": "ORDER-SAGA-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}",
-  "amount": 5000,
-  "cardToken": "tok_test_2222",
-  "productName": "Saga Test - PG Fail"
+                <stringProp name="Argument.value">{&#xd;
+  &quot;walletId&quot;: ${walletId},&#xd;
+  &quot;merchantId&quot;: 1,&#xd;
+  &quot;orderId&quot;: &quot;ORDER-SAGA-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}&quot;,&#xd;
+  &quot;amount&quot;: 5000,&#xd;
+  &quot;cardToken&quot;: &quot;tok_test_2222&quot;,&#xd;
+  &quot;productName&quot;: &quot;Saga Test - PG Fail&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -391,8 +384,7 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
             </collectionProp>
           </HeaderManager>
           <hashTree/>
-
-          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract paymentId">
+          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="Extract paymentId" enabled="true">
             <stringProp name="JSONPostProcessor.referenceNames">paymentId</stringProp>
             <stringProp name="JSONPostProcessor.jsonPathExprs">$.paymentId</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
@@ -400,17 +392,20 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
           </JSONPostProcessor>
           <hashTree/>
         </hashTree>
-
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments/{id}/approve (Should Fail)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments/{id}/approve (Should Fail)" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/api/payments/${paymentId}/approve</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -421,9 +416,7 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
           <hashTree/>
         </hashTree>
       </hashTree>
-
-      <!-- ========== 리스너 ========== -->
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -460,8 +453,7 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
         <stringProp name="filename">../results/summary.csv</stringProp>
       </ResultCollector>
       <hashTree/>
-
-      <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report">
+      <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -498,8 +490,7 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
         <stringProp name="filename">../results/aggregate.csv</stringProp>
       </ResultCollector>
       <hashTree/>
-
-      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
         <boolProp name="ResultCollector.error_logging">true</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -536,7 +527,6 @@ vars.put("idempotencyKey", UUID.randomUUID().toString());
         <stringProp name="filename">../results/errors.csv</stringProp>
       </ResultCollector>
       <hashTree/>
-
     </hashTree>
   </hashTree>
 </jmeterTestPlan>

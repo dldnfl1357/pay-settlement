@@ -2,7 +2,6 @@ package com.example.payment.infrastructure.persistence;
 
 import com.example.payment.domain.ledger.AccountType;
 import com.example.payment.domain.ledger.LedgerEntry;
-import com.example.payment.domain.ledger.LedgerEntryRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,10 +10,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface JpaLedgerEntryRepository extends JpaRepository<LedgerEntry, Long>, LedgerEntryRepository {
+public interface JpaLedgerEntryRepository extends JpaRepository<LedgerEntry, Long> {
 
     @Query("SELECT e FROM LedgerEntry e WHERE e.transactionId.value = :txId")
-    List<LedgerEntry> findByTransactionId(@Param("txId") String transactionId);
+    List<LedgerEntry> findByTransactionIdValue(@Param("txId") String transactionId);
 
     List<LedgerEntry> findByPaymentId(Long paymentId);
 

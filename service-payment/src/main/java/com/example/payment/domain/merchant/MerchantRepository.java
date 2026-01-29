@@ -9,9 +9,7 @@ public interface MerchantRepository {
 
     Optional<Merchant> findById(Long id);
 
-    Optional<Merchant> findByApiKey(String apiKey);
-
-    List<Merchant> findByActiveTrue();
+    List<Merchant> findAll();
 
     long count();
 }
