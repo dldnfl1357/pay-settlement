@@ -101,7 +101,8 @@
   &quot;orderId&quot;: &quot;ORDER-${__time(yyyyMMddHHmmssSSS)}-${__threadNum}-${__Random(1000,9999)}&quot;,&#xd;
   &quot;amount&quot;: 1,&#xd;
   &quot;cardToken&quot;: &quot;tok_test_1111&quot;,&#xd;
-  &quot;productName&quot;: &quot;Load Test Product&quot;&#xd;
+  &quot;productName&quot;: &quot;Load Test Product&quot;,&#xd;
+  &quot;idempotencyKey&quot;: &quot;${idempotencyKey}&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
@@ -109,7 +110,7 @@
           </elementProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate UUID">
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Generate UUID" enabled="true">
             <stringProp name="script">vars.put(&quot;idempotencyKey&quot;, UUID.randomUUID().toString());</stringProp>
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="parameters"></stringProp>
@@ -117,7 +118,7 @@
             <stringProp name="cacheKey">false</stringProp>
           </JSR223PreProcessor>
           <hashTree/>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Headers" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
