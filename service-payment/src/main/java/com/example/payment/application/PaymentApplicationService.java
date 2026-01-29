@@ -18,8 +18,10 @@ import com.example.payment.domain.shared.DomainEvent;
 import com.example.payment.domain.shared.Money;
 import com.example.payment.domain.wallet.Wallet;
 import com.example.payment.domain.wallet.WalletRepository;
+import com.example.payment.infrastructure.metrics.PaymentMetrics;
 import com.example.payment.infrastructure.pg.PgApprovalException;
 import com.example.payment.infrastructure.pg.PgResponse;
+import io.micrometer.core.instrument.Timer;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,7 @@ public class PaymentApplicationService {
     private final DistributedLockManager lockManager;
     private final PaymentEventPublisher eventPublisher;
     private final LedgerDomainService ledgerDomainService;
+    private final PaymentMetrics paymentMetrics;
 
     @Transactional
     public PaymentResult createPayment(CreatePaymentCommand command) {
@@ -51,6 +54,7 @@ public class PaymentApplicationService {
         if (cached.isPresent()) {
             log.info("Idempotency hit: returning cached response for key={}",
                 command.getIdempotencyKey());
+            paymentMetrics.incrementIdempotencyHit();
             return cached.get();
         }
 
@@ -76,6 +80,7 @@ public class PaymentApplicationService {
                 payment.getId(), payment.getOrderId(), payment.getAmount());
 
             publishEvents(payment);
+            paymentMetrics.incrementPaymentCreated();
 
             PaymentResult result = PaymentResult.from(payment);
             idempotencyStore.complete(command.getIdempotencyKey(), result);
@@ -89,6 +94,8 @@ public class PaymentApplicationService {
 
     @Transactional
     public PaymentResult approvePayment(Long paymentId) {
+        Timer.Sample approvalTimer = paymentMetrics.startTimer();
+
         Payment payment = paymentRepository.findById(paymentId)
             .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
@@ -102,6 +109,7 @@ public class PaymentApplicationService {
             payment.fail("Payment expired");
             paymentRepository.save(payment);
             publishEvents(payment);
+            paymentMetrics.incrementPaymentFailed();
             throw new PaymentExpiredException("Payment has expired: " + paymentId);
         }
 
@@ -116,8 +124,10 @@ public class PaymentApplicationService {
 
             // Step 2: PG 승인
             log.info("Step 2: PG approval - paymentId={}", paymentId);
+            Timer.Sample pgTimer = paymentMetrics.startTimer();
             PgResponse pgResponse = pgGateway.approve(
                 payment.getCardToken().getValue(), payment.getAmount().getAmount());
+            paymentMetrics.stopPgCallTimer(pgTimer);
 
             if (!pgResponse.isSuccess()) {
                 throw new PgApprovalException(pgResponse.getErrorCode(), pgResponse.getErrorMessage());
@@ -138,12 +148,16 @@ public class PaymentApplicationService {
             publishEvents(payment);
 
             log.info("Payment approved successfully: id={}", paymentId);
+            paymentMetrics.incrementPaymentApproved();
+            paymentMetrics.recordPaymentAmount(payment.getAmount().getAmount(), "APPROVED");
+            paymentMetrics.stopApprovalTimer(approvalTimer);
             return PaymentResult.from(payment);
 
         } catch (Exception e) {
             log.error("Payment approval failed, starting compensation: paymentId={}, error={}",
                 paymentId, e.getMessage());
             compensate(payment, balanceDeducted);
+            paymentMetrics.incrementPaymentFailed();
             throw e;
         }
     }
@@ -179,6 +193,8 @@ public class PaymentApplicationService {
         publishEvents(payment);
 
         log.info("Payment cancelled successfully: id={}", paymentId);
+        paymentMetrics.incrementPaymentCancelled();
+        paymentMetrics.recordPaymentAmount(payment.getAmount().getAmount(), "CANCELLED");
         return PaymentResult.from(payment);
     }
 
@@ -244,6 +260,7 @@ public class PaymentApplicationService {
 
     private void compensate(Payment payment, boolean balanceDeducted) {
         log.warn("Starting Saga compensation: paymentId={}", payment.getId());
+        paymentMetrics.incrementSagaCompensation();
         try {
             if (balanceDeducted) {
                 restoreWalletBalance(payment.getWalletId(), payment.getAmount());

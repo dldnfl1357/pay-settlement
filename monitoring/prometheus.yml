@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Payment Service
+  - job_name: 'payment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['payment-service:8080']
+    # 로컬 개발 시
+    # static_configs:
+    #   - targets: ['host.docker.internal:8080']
+
+  # Settlement Service
+  - job_name: 'settlement-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['settlement-service:8081']
+
+  # Prometheus 자체 메트릭
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
