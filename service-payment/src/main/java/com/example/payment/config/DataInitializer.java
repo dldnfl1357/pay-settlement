@@ -51,14 +51,12 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         Merchant merchant1 = Merchant.create(
-            "테스트가맹점A", "123-45-67890",
-            FeeRate.of("0.0250"), "test-api-key-merchant-a"
+            "테스트가맹점A", "123-45-67890", FeeRate.of("0.0250")
         );
         merchantRepository.save(merchant1);
 
         Merchant merchant2 = Merchant.create(
-            "테스트가맹점B", "098-76-54321",
-            FeeRate.of("0.0200"), "test-api-key-merchant-b"
+            "테스트가맹점B", "098-76-54321", FeeRate.of("0.0200")
         );
         merchantRepository.save(merchant2);
 
