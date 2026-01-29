@@ -1,0 +1,11 @@
+fixedIdempotencyKey,walletId,amount
+dup-key-001,1,10000
+dup-key-002,2,20000
+dup-key-003,3,15000
+dup-key-004,4,25000
+dup-key-005,5,30000
+dup-key-006,6,12000
+dup-key-007,7,18000
+dup-key-008,8,22000
+dup-key-009,9,28000
+dup-key-010,10,35000
