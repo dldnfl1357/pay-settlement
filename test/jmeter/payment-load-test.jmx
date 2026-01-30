@@ -55,7 +55,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Throughput Timer (1000 TPS)">
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Throughput Timer (1000 TPS)" enabled="true">
           <intProp name="calcMode">2</intProp>
           <doubleProp>
             <name>throughput</name>
@@ -64,7 +64,7 @@
           </doubleProp>
         </ConstantThroughputTimer>
         <hashTree/>
-        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Wallet ID">
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Wallet ID" enabled="true">
           <stringProp name="variableName">walletId</stringProp>
           <stringProp name="minimumValue">1</stringProp>
           <stringProp name="maximumValue">${WALLET_COUNT}</stringProp>
@@ -73,7 +73,7 @@
           <stringProp name="randomSeed"></stringProp>
         </RandomVariableConfig>
         <hashTree/>
-        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Merchant ID">
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Random Merchant ID" enabled="true">
           <stringProp name="variableName">merchantId</stringProp>
           <stringProp name="minimumValue">1</stringProp>
           <stringProp name="maximumValue">${MERCHANT_COUNT}</stringProp>
@@ -82,7 +82,7 @@
           <stringProp name="randomSeed"></stringProp>
         </RandomVariableConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Create)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Create)" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${PORT}</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
