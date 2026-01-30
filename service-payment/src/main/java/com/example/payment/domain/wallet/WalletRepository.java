@@ -6,6 +6,8 @@ public interface WalletRepository {
 
     Wallet save(Wallet wallet);
 
+    Wallet saveAndFlush(Wallet wallet);
+
     Optional<Wallet> findById(Long id);
 
     Optional<Wallet> findByUserId(Long userId);

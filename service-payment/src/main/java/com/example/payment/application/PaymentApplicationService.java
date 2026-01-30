@@ -3,7 +3,6 @@ package com.example.payment.application;
 import com.example.payment.application.dto.CreatePaymentCommand;
 import com.example.payment.application.dto.PaymentResult;
 import com.example.payment.application.exception.PaymentNotFoundException;
-import com.example.payment.application.port.DistributedLockManager;
 import com.example.payment.application.port.IdempotencyStore;
 import com.example.payment.application.port.PaymentEventPublisher;
 import com.example.payment.application.port.PgGateway;
@@ -16,13 +15,10 @@ import com.example.payment.domain.payment.exception.DuplicatePaymentException;
 import com.example.payment.domain.payment.exception.PaymentExpiredException;
 import com.example.payment.domain.shared.DomainEvent;
 import com.example.payment.domain.shared.Money;
-import com.example.payment.domain.wallet.Wallet;
-import com.example.payment.domain.wallet.WalletRepository;
 import com.example.payment.infrastructure.metrics.PaymentMetrics;
 import com.example.payment.infrastructure.pg.PgApprovalException;
 import com.example.payment.infrastructure.pg.PgResponse;
 import io.micrometer.core.instrument.Timer;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,14 +33,13 @@ import java.util.Optional;
 public class PaymentApplicationService {
 
     private final PaymentRepository paymentRepository;
-    private final WalletRepository walletRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final PgGateway pgGateway;
     private final IdempotencyStore idempotencyStore;
-    private final DistributedLockManager lockManager;
     private final PaymentEventPublisher eventPublisher;
     private final LedgerDomainService ledgerDomainService;
     private final PaymentMetrics paymentMetrics;
+    private final WalletService walletService;
 
     @Transactional
     public PaymentResult createPayment(CreatePaymentCommand command) {
@@ -121,7 +116,7 @@ public class PaymentApplicationService {
         boolean balanceDeducted = false;
 
         try {
-            // Step 1: 잔액 차감 (분산 락)
+            // Step 1: 잔액 차감
             log.info("Step 1: Deducting balance - paymentId={}, walletId={}, amount={}",
                 paymentId, payment.getWalletId(), payment.getAmount());
             deductWalletBalance(payment.getWalletId(), payment.getAmount());
@@ -211,21 +206,11 @@ public class PaymentApplicationService {
     }
 
     private void deductWalletBalance(Long walletId, Money amount) {
-        lockManager.executeWithLock("wallet:" + walletId, () -> {
-            Wallet wallet = walletRepository.findByIdWithOptimisticLock(walletId)
-                .orElseThrow(() -> new EntityNotFoundException("Wallet not found: " + walletId));
-            wallet.deduct(amount);
-            walletRepository.save(wallet);
-        });
+        walletService.deduct(walletId, amount);
     }
 
     private void restoreWalletBalance(Long walletId, Money amount) {
-        lockManager.executeWithLock("wallet:" + walletId, () -> {
-            Wallet wallet = walletRepository.findByIdWithOptimisticLock(walletId)
-                .orElseThrow(() -> new EntityNotFoundException("Wallet not found: " + walletId));
-            wallet.restore(amount);
-            walletRepository.save(wallet);
-        });
+        walletService.restore(walletId, amount);
     }
 
     private void recordPaymentLedger(Payment payment) {
@@ -251,9 +236,7 @@ public class PaymentApplicationService {
     }
 
     private Money getWalletBalance(Long walletId) {
-        return walletRepository.findById(walletId)
-            .map(Wallet::getBalance)
-            .orElse(Money.zero());
+        return walletService.getBalance(walletId);
     }
 
     private void publishEvents(Payment payment) {
