@@ -11,8 +11,10 @@ import com.example.payment.infrastructure.redis.LockAcquisitionException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,6 +29,20 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private final PaymentMetrics paymentMetrics;
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, Object>> handleOptimisticLockingFailure(
+            ObjectOptimisticLockingFailureException e) {
+        log.warn("Optimistic locking conflict: {}", e.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .header("Retry-After", "1")
+            .body(buildResponseBody(
+                HttpStatus.CONFLICT,
+                "CONFLICT",
+                "일시적인 충돌이 발생했습니다. 잠시 후 다시 시도해주세요."
+            ));
+    }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException e) {
@@ -88,6 +104,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message);
     }
 
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbort(ClientAbortException e) {
+        // 클라이언트가 연결을 끊음 - 무시 (DEBUG 레벨로만 로깅)
+        log.debug("Client aborted connection: {}", e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception e) {
         log.error("Unexpected error", e);
@@ -97,11 +119,15 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<Map<String, Object>> buildResponse(
             HttpStatus status, String code, String message) {
+        return ResponseEntity.status(status).body(buildResponseBody(status, code, message));
+    }
+
+    private Map<String, Object> buildResponseBody(HttpStatus status, String code, String message) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", status.value());
         body.put("code", code);
         body.put("message", message);
-        return ResponseEntity.status(status).body(body);
+        return body;
     }
 }
