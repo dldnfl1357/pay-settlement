@@ -14,10 +14,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.MySQLDialect
 
   data:
@@ -52,8 +52,8 @@ payment:
 
 logging:
   level:
-    com.example.payment: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.example.payment: WARN
+    org.hibernate.SQL: WARN
 
 # Actuator & Prometheus
 management:

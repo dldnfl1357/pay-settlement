@@ -114,7 +114,7 @@ public class PaymentApplicationService {
             payment.fail("Payment expired");
             paymentRepository.save(payment);
             publishEvents(payment);
-            paymentMetrics.incrementPaymentFailed();
+            // 메트릭은 GlobalExceptionHandler에서 수집
             throw new PaymentExpiredException("Payment has expired: " + paymentId);
         }
 
@@ -162,7 +162,7 @@ public class PaymentApplicationService {
             log.error("Payment approval failed, starting compensation: paymentId={}, error={}",
                 paymentId, e.getMessage());
             compensate(payment, balanceDeducted);
-            paymentMetrics.incrementPaymentFailed();
+            // 메트릭은 GlobalExceptionHandler에서 수집
             throw e;
         }
     }
