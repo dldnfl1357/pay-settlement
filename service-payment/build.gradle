@@ -5,3 +5,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 }
+
+bootRun {
+    jvmArgs = [
+        '-Xms2g', '-Xmx4g',
+        '-XX:+UseG1GC',
+        '-XX:MaxGCPauseMillis=200',
+        '-XX:+HeapDumpOnOutOfMemoryError',
+        '-XX:HeapDumpPath=./heap-dump.hprof'
+    ]
+}
