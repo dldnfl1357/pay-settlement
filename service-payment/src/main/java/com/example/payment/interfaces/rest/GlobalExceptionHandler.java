@@ -33,66 +33,71 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<Map<String, Object>> handleOptimisticLockingFailure(
             ObjectOptimisticLockingFailureException e) {
-        log.warn("Optimistic locking conflict: {}", e.getMessage());
+        log.error("Optimistic locking conflict: {}", e.getMessage());
         return ResponseEntity
             .status(HttpStatus.CONFLICT)
             .header("Retry-After", "1")
-            .body(buildResponseBody(
-                HttpStatus.CONFLICT,
-                "CONFLICT",
-                "일시적인 충돌이 발생했습니다. 잠시 후 다시 시도해주세요."
-            ));
+            .body(buildErrorResponse("CONFLICT", "일시적인 충돌이 발생했습니다."));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException e) {
-        return buildResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", e.getMessage());
+        log.error("Entity not found: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", e.getMessage());
     }
 
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePaymentNotFound(PaymentNotFoundException e) {
-        return buildResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", e.getMessage());
+        log.error("Payment not found: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", e.getMessage());
     }
 
     @ExceptionHandler(InsufficientBalanceException.class)
     public ResponseEntity<Map<String, Object>> handleInsufficientBalance(InsufficientBalanceException e) {
+        log.error("Insufficient balance: {}", e.getMessage());
         paymentMetrics.incrementPaymentFailed();
-        return buildResponse(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE", e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE", e.getMessage());
     }
 
     @ExceptionHandler(DuplicatePaymentException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicatePayment(DuplicatePaymentException e) {
-        return buildResponse(HttpStatus.CONFLICT, "DUPLICATE_PAYMENT", e.getMessage());
+        log.error("Duplicate payment: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.CONFLICT, "DUPLICATE_PAYMENT", e.getMessage());
     }
 
     @ExceptionHandler(PaymentExpiredException.class)
     public ResponseEntity<Map<String, Object>> handlePaymentExpired(PaymentExpiredException e) {
+        log.error("Payment expired: {}", e.getMessage());
         paymentMetrics.incrementPaymentFailed();
-        return buildResponse(HttpStatus.BAD_REQUEST, "PAYMENT_EXPIRED", e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "PAYMENT_EXPIRED", e.getMessage());
     }
 
     @ExceptionHandler(InvalidPaymentStateException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidState(InvalidPaymentStateException e) {
+        log.error("Invalid payment state: {}", e.getMessage());
         paymentMetrics.incrementPaymentFailed();
-        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_STATE", e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_STATE", e.getMessage());
     }
 
     @ExceptionHandler(PgApprovalException.class)
     public ResponseEntity<Map<String, Object>> handlePgApprovalError(PgApprovalException e) {
+        log.error("PG approval error: {}", e.getMessage());
         paymentMetrics.incrementPaymentFailed();
-        return buildResponse(HttpStatus.BAD_REQUEST, e.getErrorCode(), e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getErrorCode(), e.getMessage());
     }
 
     @ExceptionHandler(LockAcquisitionException.class)
     public ResponseEntity<Map<String, Object>> handleLockAcquisition(LockAcquisitionException e) {
+        log.error("Lock acquisition failed: {}", e.getMessage());
         paymentMetrics.incrementPaymentFailed();
         paymentMetrics.incrementLockAcquisitionFailure();
-        return buildResponse(HttpStatus.CONFLICT, "LOCK_ACQUISITION_FAILED", e.getMessage());
+        return buildErrorResponse(HttpStatus.CONFLICT, "LOCK_ACQUISITION_FAILED", e.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException e) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_STATE", e.getMessage());
+        log.error("Illegal state: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_STATE", e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -101,31 +106,34 @@ public class GlobalExceptionHandler {
             .map(error -> error.getField() + ": " + error.getDefaultMessage())
             .reduce((a, b) -> a + ", " + b)
             .orElse("Validation failed");
-        return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message);
+        log.error("Validation error: {}", message);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message);
     }
 
     @ExceptionHandler(ClientAbortException.class)
     public void handleClientAbort(ClientAbortException e) {
-        // 클라이언트가 연결을 끊음 - 무시 (DEBUG 레벨로만 로깅)
-        log.debug("Client aborted connection: {}", e.getMessage());
+        log.error("Client aborted: {}", e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception e) {
-        log.error("Unexpected error", e);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
-            "An unexpected error occurred");
+        log.error("Unexpected error: {}", e.getMessage(), e);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", e.getMessage());
     }
 
-    private ResponseEntity<Map<String, Object>> buildResponse(
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(
             HttpStatus status, String code, String message) {
-        return ResponseEntity.status(status).body(buildResponseBody(status, code, message));
+        return ResponseEntity.status(status).body(buildErrorBody(code, message));
     }
 
-    private Map<String, Object> buildResponseBody(HttpStatus status, String code, String message) {
+    private Map<String, Object> buildErrorResponse(String code, String message) {
+        return buildErrorBody(code, message);
+    }
+
+    private Map<String, Object> buildErrorBody(String code, String message) {
         Map<String, Object> body = new HashMap<>();
+        body.put("error", true);
         body.put("timestamp", LocalDateTime.now());
-        body.put("status", status.value());
         body.put("code", code);
         body.put("message", message);
         return body;

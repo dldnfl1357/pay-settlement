@@ -2,10 +2,9 @@ server:
   port: 8080
   tomcat:
     threads:
-      max: 400
-      min-spare: 100
-    accept-count: 300
-    connection-timeout: 6000
+      max: 1000
+      min-spare: 300
+    max-connections: 50000
 
 spring:
   application:
@@ -17,21 +16,18 @@ spring:
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 150
-      minimum-idle: 50
-      connection-timeout: 3000
-      validation-timeout: 2000
-      max-lifetime: 1800000
-      idle-timeout: 600000
+      maximum-pool-size: 150   # 300 TPS × 0.3초 = 90 필요, 여유 포함
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: false
-        dialect: org.hibernate.dialect.MySQLDialect
+        # batch 설정 없음 (기본값)
+        generate_statistics: false
 
   data:
     redis:
@@ -65,8 +61,11 @@ payment:
 
 logging:
   level:
+    root: WARN
     com.example.payment: WARN
-    org.hibernate.SQL: WARN
+    org.apache.tomcat: WARN
+    org.apache.coyote: WARN
+    org.apache.catalina: WARN
 
 # Actuator & Prometheus
 management:

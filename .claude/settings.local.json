@@ -36,7 +36,17 @@
       "Bash(export GRADLE_HOME=\"/tmp/gradle-extract/gradle-8.5\")",
       "Bash(\"$JAVA_HOME/bin/java\" -cp \"$GRADLE_HOME/lib/gradle-launcher-8.5.jar\" org.gradle.launcher.GradleMain wrapper --gradle-version 8.5 --project-dir /tmp/gradle-wrapper-gen)",
       "Bash(\"$JAVA_HOME/bin/java\" -cp \"/tmp/gradle-extract/gradle-8.5/lib/*\" org.gradle.launcher.Main wrapper --gradle-version 8.5 --project-dir /tmp/gradle-wrapper-gen)",
-      "Bash(\"/mnt/c/Program Files/Java/jdk-17/bin/java.exe\" -cp \"C:\\\\tmp\\\\gradle-extract\\\\gradle-8.5\\\\lib\\\\*\" org.gradle.launcher.Main wrapper --gradle-version 8.5 --project-dir \"C:\\\\tmp\\\\gradle-wrapper-gen\")"
+      "Bash(\"/mnt/c/Program Files/Java/jdk-17/bin/java.exe\" -cp \"C:\\\\tmp\\\\gradle-extract\\\\gradle-8.5\\\\lib\\\\*\" org.gradle.launcher.Main wrapper --gradle-version 8.5 --project-dir \"C:\\\\tmp\\\\gradle-wrapper-gen\")",
+      "Bash(ulimit:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose logs)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(netsh interface ipv4 show excludedportrange:*)",
+      "Bash(tar:*)",
+      "Bash(~/bin/k6 version:*)",
+      "Bash(mysql:*)"
     ]
   }
 }

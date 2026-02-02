@@ -18,8 +18,13 @@ public class RedissonConfig {
         Config config = new Config();
         config.useSingleServer()
             .setAddress(redisAddress)
-            .setConnectionMinimumIdleSize(1)
-            .setConnectionPoolSize(10);
+            .setConnectionMinimumIdleSize(50)
+            .setConnectionPoolSize(200)
+            .setSubscriptionConnectionMinimumIdleSize(10)
+            .setSubscriptionConnectionPoolSize(50)
+            .setTimeout(10000)
+            .setRetryAttempts(3)
+            .setRetryInterval(1500);
         return Redisson.create(config);
     }
 }

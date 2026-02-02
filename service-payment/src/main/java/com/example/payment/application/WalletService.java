@@ -17,19 +17,21 @@ public class WalletService {
     private final WalletRepository walletRepository;
 
     @Transactional
-    public void deduct(Long walletId, Money amount) {
+    public Money deduct(Long walletId, Money amount) {
         Wallet wallet = walletRepository.findById(walletId)
             .orElseThrow(() -> new EntityNotFoundException("Wallet not found: " + walletId));
         wallet.deduct(amount);
         walletRepository.save(wallet);
+        return wallet.getBalance();  // 차감 후 잔액 반환
     }
 
     @Transactional
-    public void restore(Long walletId, Money amount) {
+    public Money restore(Long walletId, Money amount) {
         Wallet wallet = walletRepository.findById(walletId)
             .orElseThrow(() -> new EntityNotFoundException("Wallet not found: " + walletId));
         wallet.restore(amount);
         walletRepository.save(wallet);
+        return wallet.getBalance();  // 복구 후 잔액 반환
     }
 
     @Transactional(readOnly = true)

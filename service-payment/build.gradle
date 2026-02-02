@@ -12,6 +12,7 @@ bootRun {
         '-XX:+UseG1GC',
         '-XX:MaxGCPauseMillis=200',
         '-XX:+HeapDumpOnOutOfMemoryError',
-        '-XX:HeapDumpPath=./heap-dump.hprof'
+        '-XX:HeapDumpPath=./heap-dump.hprof',
+        '-Xlog:gc*:file=./gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
     ]
 }

@@ -18,7 +18,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "payments", indexes = {
     @Index(name = "idx_idempotency", columnList = "idempotency_key", unique = true),
-    @Index(name = "idx_merchant_created", columnList = "merchant_id, created_at")
+    @Index(name = "idx_merchant_created", columnList = "merchant_id, created_at"),
+    @Index(name = "idx_wallet_id", columnList = "wallet_id"),
+    @Index(name = "idx_status", columnList = "status")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

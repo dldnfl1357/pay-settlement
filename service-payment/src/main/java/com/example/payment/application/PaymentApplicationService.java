@@ -43,18 +43,14 @@ public class PaymentApplicationService {
 
     @Transactional
     public PaymentResult createPayment(CreatePaymentCommand command) {
-        // 멱등성 체크
         Optional<PaymentResult> cached = idempotencyStore.getResponse(
             command.getIdempotencyKey(), PaymentResult.class);
         if (cached.isPresent()) {
-            log.info("Idempotency hit: returning cached response for key={}",
-                command.getIdempotencyKey());
             paymentMetrics.incrementIdempotencyHit();
             return cached.get();
         }
 
         if (!idempotencyStore.tryAcquire(command.getIdempotencyKey())) {
-            log.warn("Duplicate request in progress: key={}", command.getIdempotencyKey());
             throw new DuplicatePaymentException("Payment request already in progress");
         }
 
@@ -70,13 +66,8 @@ public class PaymentApplicationService {
             );
 
             payment = paymentRepository.save(payment);
-
-            log.info("Payment created: id={}, orderId={}, amount={}",
-                payment.getId(), payment.getOrderId(), payment.getAmount());
-
             paymentMetrics.incrementPaymentCreated();
 
-            // 생성 후 바로 승인 처리
             PaymentResult result = doApprove(payment);
             idempotencyStore.complete(command.getIdempotencyKey(), result);
             return result;
@@ -93,8 +84,6 @@ public class PaymentApplicationService {
             .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         if (payment.getStatus() != PaymentStatus.PENDING) {
-            log.warn("Invalid payment status for approval: id={}, status={}",
-                paymentId, payment.getStatus());
             return PaymentResult.from(payment);
         }
 
@@ -114,16 +103,12 @@ public class PaymentApplicationService {
         }
 
         boolean balanceDeducted = false;
+        Money walletBalanceAfterDeduct = null;
 
         try {
-            // Step 1: 잔액 차감
-            log.info("Step 1: Deducting balance - paymentId={}, walletId={}, amount={}",
-                paymentId, payment.getWalletId(), payment.getAmount());
-            deductWalletBalance(payment.getWalletId(), payment.getAmount());
+            walletBalanceAfterDeduct = deductWalletBalance(payment.getWalletId(), payment.getAmount());
             balanceDeducted = true;
 
-            // Step 2: PG 승인
-            log.info("Step 2: PG approval - paymentId={}", paymentId);
             Timer.Sample pgTimer = paymentMetrics.startTimer();
             PgResponse pgResponse = pgGateway.approve(
                 payment.getCardToken().getValue(), payment.getAmount().getAmount());
@@ -133,31 +118,20 @@ public class PaymentApplicationService {
                 throw new PgApprovalException(pgResponse.getErrorCode(), pgResponse.getErrorMessage());
             }
 
-            // Step 3: 결제 완료
-            log.info("Step 3: Completing payment - paymentId={}, pgTxId={}",
-                paymentId, pgResponse.getTransactionId());
             payment.approve(pgResponse.getTransactionId());
             payment = paymentRepository.save(payment);
 
-            // Step 4: 원장 기록
-            log.info("Step 4: Recording ledger - paymentId={}", paymentId);
-            recordPaymentLedger(payment);
+            recordPaymentLedger(payment, walletBalanceAfterDeduct);
 
-            // Step 5: 이벤트 발행
-            log.info("Step 5: Publishing events - paymentId={}", paymentId);
             publishEvents(payment);
 
-            log.info("Payment approved successfully: id={}", paymentId);
             paymentMetrics.incrementPaymentApproved();
             paymentMetrics.recordPaymentAmount(payment.getAmount().getAmount(), "APPROVED");
             paymentMetrics.stopApprovalTimer(approvalTimer);
             return PaymentResult.from(payment);
 
         } catch (Exception e) {
-            log.error("Payment approval failed, starting compensation: paymentId={}, error={}",
-                paymentId, e.getMessage());
             compensate(payment, balanceDeducted);
-            // 메트릭은 GlobalExceptionHandler에서 수집
             throw e;
         }
     }
@@ -167,9 +141,6 @@ public class PaymentApplicationService {
         Payment payment = paymentRepository.findById(paymentId)
             .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
-        // PG 취소
-        log.info("Cancelling PG transaction: paymentId={}, pgTxId={}",
-            paymentId, payment.getPgTransactionId());
         PgResponse pgResponse = pgGateway.cancel(
             payment.getPgTransactionId(), payment.getAmount().getAmount());
 
@@ -177,22 +148,18 @@ public class PaymentApplicationService {
             throw new RuntimeException("PG cancellation failed: " + pgResponse.getErrorMessage());
         }
 
-        // 잔액 복구
-        log.info("Restoring balance: paymentId={}, walletId={}, amount={}",
-            paymentId, payment.getWalletId(), payment.getAmount());
-        restoreWalletBalance(payment.getWalletId(), payment.getAmount());
+        // 잔액 복구 (복구 후 잔액 반환)
+        Money walletBalance = restoreWalletBalance(payment.getWalletId(), payment.getAmount());
 
         // 결제 취소
         payment.cancel();
         payment = paymentRepository.save(payment);
 
-        // 취소 원장 기록
-        recordCancellationLedger(payment);
+        // 취소 원장 기록 (이미 조회한 잔액 재사용)
+        recordCancellationLedger(payment, walletBalance);
 
-        // 이벤트 발행
         publishEvents(payment);
 
-        log.info("Payment cancelled successfully: id={}", paymentId);
         paymentMetrics.incrementPaymentCancelled();
         paymentMetrics.recordPaymentAmount(payment.getAmount().getAmount(), "CANCELLED");
         return PaymentResult.from(payment);
@@ -205,16 +172,15 @@ public class PaymentApplicationService {
         return PaymentResult.from(payment);
     }
 
-    private void deductWalletBalance(Long walletId, Money amount) {
-        walletService.deduct(walletId, amount);
+    private Money deductWalletBalance(Long walletId, Money amount) {
+        return walletService.deduct(walletId, amount);
     }
 
-    private void restoreWalletBalance(Long walletId, Money amount) {
-        walletService.restore(walletId, amount);
+    private Money restoreWalletBalance(Long walletId, Money amount) {
+        return walletService.restore(walletId, amount);
     }
 
-    private void recordPaymentLedger(Payment payment) {
-        Money walletBalance = getWalletBalance(payment.getWalletId());
+    private void recordPaymentLedger(Payment payment, Money walletBalance) {
         List<LedgerEntry> entries = ledgerDomainService.createPaymentEntries(
             TransactionId.generate(), payment.getId(),
             payment.getWalletId(), payment.getMerchantId(),
@@ -224,8 +190,7 @@ public class PaymentApplicationService {
         ledgerEntryRepository.saveAll(entries);
     }
 
-    private void recordCancellationLedger(Payment payment) {
-        Money walletBalance = getWalletBalance(payment.getWalletId());
+    private void recordCancellationLedger(Payment payment, Money walletBalance) {
         List<LedgerEntry> entries = ledgerDomainService.createCancellationEntries(
             TransactionId.generate(), payment.getId(),
             payment.getWalletId(), payment.getMerchantId(),
@@ -233,10 +198,6 @@ public class PaymentApplicationService {
             payment.getOrderId().getValue()
         );
         ledgerEntryRepository.saveAll(entries);
-    }
-
-    private Money getWalletBalance(Long walletId) {
-        return walletService.getBalance(walletId);
     }
 
     private void publishEvents(Payment payment) {
@@ -247,13 +208,11 @@ public class PaymentApplicationService {
     }
 
     private void compensate(Payment payment, boolean balanceDeducted) {
-        log.warn("Starting Saga compensation: paymentId={}", payment.getId());
         paymentMetrics.incrementSagaCompensation();
         try {
             if (balanceDeducted) {
-                restoreWalletBalance(payment.getWalletId(), payment.getAmount());
+                Money walletBalance = restoreWalletBalance(payment.getWalletId(), payment.getAmount());
 
-                Money walletBalance = getWalletBalance(payment.getWalletId());
                 LedgerEntry compensationEntry = ledgerDomainService.createCompensationEntry(
                     TransactionId.generate(), payment.getId(),
                     payment.getWalletId(), payment.getAmount(),
@@ -266,11 +225,8 @@ public class PaymentApplicationService {
             paymentRepository.save(payment);
 
             publishEvents(payment);
-
-            log.info("Saga compensation completed: paymentId={}", payment.getId());
         } catch (Exception e) {
-            log.error("Saga compensation failed: paymentId={}, error={}",
-                payment.getId(), e.getMessage(), e);
+            log.error("Compensation failed: id={}", payment.getId(), e);
         }
     }
 }
