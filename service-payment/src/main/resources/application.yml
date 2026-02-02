@@ -5,6 +5,7 @@ server:
       max: 1000
       min-spare: 300
     max-connections: 50000
+    accept-count: 1000
 
 spring:
   application:
@@ -16,7 +17,7 @@ spring:
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 150   # 300 TPS × 0.3초 = 90 필요, 여유 포함
+      maximum-pool-size: 100   # 300 TPS × 0.3초 = 90 필요, 여유 포함
 
   jpa:
     hibernate:
