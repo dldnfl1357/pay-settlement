@@ -46,7 +46,10 @@
       "Bash(netsh interface ipv4 show excludedportrange:*)",
       "Bash(tar:*)",
       "Bash(~/bin/k6 version:*)",
-      "Bash(mysql:*)"
+      "Bash(mysql:*)",
+      "Bash(powershell.exe -Command \"netsh int tcp show global\")",
+      "Bash(powershell.exe -Command \"netsh int ipv4 show dynamicport tcp\")",
+      "Bash(powershell.exe:*)"
     ]
   }
 }

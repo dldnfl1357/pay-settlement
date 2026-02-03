@@ -54,7 +54,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Throughput Timer (300 TPS)">
+        <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="Throughput Timer (300 TPS)" enabled="true">
           <intProp name="calcMode">2</intProp>
           <doubleProp>
             <name>throughput</name>
@@ -81,7 +81,7 @@
           <stringProp name="randomSeed"></stringProp>
         </RandomVariableConfig>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Create)">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/payments (Create)" enabled="true">
           <intProp name="HTTPSampler.connect_timeout">7000</intProp>
           <intProp name="HTTPSampler.response_timeout">10000</intProp>
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>

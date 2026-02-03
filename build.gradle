@@ -43,6 +43,7 @@ subprojects {
         annotationProcessor 'org.projectlombok:lombok'
 
         runtimeOnly 'com.mysql:mysql-connector-j'
+        runtimeOnly 'com.oracle.database.jdbc:ojdbc11:23.3.0.23.09'
 
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'org.springframework.kafka:spring-kafka-test'

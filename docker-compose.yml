@@ -1,6 +1,29 @@
 version: '3.8'
 
 services:
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: payment
+      APP_USER_PASSWORD: payment
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
   mysql:
     image: mysql:8.0
     container_name: mysql
@@ -101,7 +124,7 @@ services:
       dockerfile: docker/Dockerfile.payment
     container_name: payment-service
     depends_on:
-      mysql:
+      oracle:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -111,9 +134,11 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: payment
+      SPRING_DATASOURCE_PASSWORD: payment
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: oracle.jdbc.OracleDriver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.OracleDialect
       SPRING_DATA_REDIS_HOST: redis
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       REDISSON_ADDRESS: redis://redis:6379
@@ -132,7 +157,7 @@ services:
       dockerfile: docker/Dockerfile.settlement
     container_name: settlement-service
     depends_on:
-      mysql:
+      oracle:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -140,9 +165,11 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: payment
+      SPRING_DATASOURCE_PASSWORD: payment
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: oracle.jdbc.OracleDriver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.OracleDialect
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
 
   # ========== Monitoring ==========
@@ -188,6 +215,7 @@ services:
       - prometheus
 
 volumes:
+  oracle_data:
   mysql_data:
   redis_data:
   prometheus_data:
